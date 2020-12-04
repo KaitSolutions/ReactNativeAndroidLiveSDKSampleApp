@@ -3,13 +3,14 @@ import { StyleSheet, Button, View, SafeAreaView, Text, Alert, ScrollView, Toucha
 import { NativeEventEmitter, NativeModules } from 'react-native';
 //import styles from 'react-native';
 import { ListDevices } from './components/listview/data/MockListHeroes';
+import PairedListView from './components/listview/PairedListView';
 import ListView from './components/listview/ListView';
 import Device  from './components/listview/models/Device';
 
 
 // Event Type
 const EVENT_STATUS_BLUETOOTH_DEVICE_FOUND = "EventBluetoothDeviceFound";
-const EVENT_STATUS_BLUETOOTH_PAIRED_DEVICE = "EventBluetoothPairedDeivce";
+const EVENT_STATUS_BLUETOOTH_PAIRED_DEVICE = "EventBluetoothPairedDevice";
 const EVENT_STATUS_BLUETOOTH = "EventBluetoothStatus";
 const EVENT_PEN_SETTING      = "EventPenSetting";
 const EVENT_PEN_STATUS       = "EventPenStatus";
@@ -72,6 +73,7 @@ const BLUETOOTH_STATUS_BONDED           = 10;
 const BLUETOOTH_STATUS_WAIT_FOR_CONNECT = 11;
 const BLUETOOTH_STATUS_CONNECTED        = 12;
 const BLUETOOTH_STATUS_DISCONNECTED     = 13;
+const BLUETOOTH_STATUS_PAIRED_DEVICE    = 14;
 
 // Streaming Event Type
 const TYPE_NEWSESSION                   = 2;
@@ -171,6 +173,7 @@ export default class App extends Component {
         super();
 
          this.state = {
+            pairedDevices: [],
             pairableDevices: [],
             connectedDevice: "Disconnected",
             log:""
@@ -209,6 +212,12 @@ export default class App extends Component {
                 this.setState({ connectedDevice });
             }
         });
+
+        //-----------------------------------------------------------
+        // EVENT_STATUS_BLUETOOTH_DEVICE_FOUND
+        //-----------------------------------------------------------
+        this.updatePairedDeviceEvent = new NativeEventEmitter(NativeModules.PenManager);
+        this.updatePairedDeviceEvent.addListener(EVENT_STATUS_BLUETOOTH_PAIRED_DEVICE, (event) => this.updatePairedDevice(event));
 
         //-----------------------------------------------------------
         // EVENT_STATUS_BLUETOOTH_DEVICE_FOUND
@@ -383,18 +392,67 @@ export default class App extends Component {
             this.setState({ log }); 
         });
 
+        //-----------------------------------------------------------
         // Start SDK
+        //-----------------------------------------------------------
         NativeModules.PenManager.startSDK();
-
-        // Request the paired devices
-        // NativeModules.PenManager.requestPairedDevicesWithPen();
     }
 
     componentWillUnmount() {
         this.eventListener.remove(); //Removes the listener
     }
    
+    //
+    //  Start SDK
+    //
+    doStartSDK = () => {
+        this.resetPairedDevice();
+        this.resetPairableDevice();
+        NativeModules.PenManager.startSDK();
+    }
 
+    //
+    //  Stop SDK
+    //
+    doStopSDK = () => {
+        this.resetPairedDevice();
+        this.resetPairableDevice();
+        NativeModules.PenManager.stopSDK();
+    }
+
+    //
+    // Update the paired device list
+    //
+    updatePairedDevice = (event) => {
+
+        console.log('> Paired Device Name: ' + event.Name + ' Address: ' + event.Address); 
+
+         let pairedDevices = this.state.pairedDevices;
+         let newDevice = new Device(event.Name, event.Address);
+
+         console.log('updatePairedDevice > devices length: ' + pairedDevices.length);
+
+        if(pairedDevices && newDevice) {
+            const count = pairedDevices.length;
+            var isNewDevice = true;
+            for(let i = 0; i< count; i++) {
+                if(newDevice.address === pairedDevices[i].address) { 
+                    isNewDevice = false;
+                    break;
+                }
+            }
+            if(isNewDevice) {
+                pairedDevices.push(newDevice);
+                this.setState({ pairedDevices });
+            }
+        } else {
+            console.log('unexpected error');
+        }
+    }
+
+    //
+    // Update the pairable device list
+    //
     updateFoundDevice = (event) => {
 
         console.log('> Found Device Name: ' + event.Name + ' Address: ' + event.Address); 
@@ -422,27 +480,42 @@ export default class App extends Component {
         }
     }
 
-    scanDevice = () => {
-
-        this.resetPairableDevice();
-        NativeModules.PenManager.doScanDevice();
-        // NativeModules.PenManager.doScanDevice(
-        //     (Err) => console.log('Error: ' + Err),
-        //     (Name, Address) => console.log('Found Device Name: ' + Name + " Address: " + Address)
-        //     )
+    //
+    //  reset the paired Devices listview
+    //
+    resetPairedDevice = () => {
+        var baseState = this.state.pairedDevices.splice(0,this.state.pairedDevices.length);
+        this.setState({ baseState });
     }
 
+    //
+    //  reset pairable Devices listview
+    //
     resetPairableDevice = () => {
-        //this.setState(this.baseState);
         var baseState = this.state.pairableDevices.splice(0,this.state.pairableDevices.length);
         this.setState({ baseState });
     }
 
+    //
+    //  scan a pen
+    //
+    doScanDevice = () => {
+        this.resetPairableDevice();
+        NativeModules.PenManager.doScanDevice();
+    }
+
+    //
+    //  get the page template information (width and height)
+    //
     getPageTemplate = (pageAddress) => {
         console.log("# Log > getPageTemplate for " + pageAddress);
         NativeModules.PenManager.getPageTemplate(pageAddress);
         console.log("# Log > end getPageTemplate for " + pageAddress);
     }
+    
+    //
+    //  UI Renderer
+    //
 
     render() {
         return (
@@ -452,16 +525,20 @@ export default class App extends Component {
                 
                 <View style={styles.menuLayout}>
                     <View style={styles.containerButton}>
-                        <TouchableOpacity activeOpacity={0.8} style={styles.button} onPress={() => NativeModules.PenManager.startSDK()}>
+                        <TouchableOpacity activeOpacity={0.8} style={styles.button} onPress={() => this.doStartSDK()}>
                             <Text style={styles.text}>Start SDK</Text>
                         </TouchableOpacity>  
                     </View>
                     <View style={styles.containerButton}>
-                        <TouchableOpacity activeOpacity={0.8} style={styles.button} onPress={() => NativeModules.PenManager.doScanDevice()}>
+                        <TouchableOpacity activeOpacity={0.8} style={styles.button} onPress={() => this.doStopSDK()}>
+                            <Text style={styles.text}>Stop SDK</Text>
+                        </TouchableOpacity>  
+                    </View>
+                    <View style={styles.containerButton}>
+                        <TouchableOpacity activeOpacity={0.8} style={styles.button} onPress={() => this.doScanDevice()}>
                             <Text style={styles.text}>Scan</Text>
                         </TouchableOpacity>  
                     </View>
-
                     <View style={styles.containerButton}>
                         <TouchableOpacity activeOpacity={0.8} style={styles.button} onPress={() => NativeModules.PenManager.doDisconnect()}>
                             <Text style={styles.text}>Disconnect</Text>
@@ -496,6 +573,21 @@ export default class App extends Component {
                 {/* Contents (Bluetoot list & Log ) Layout  */}
 
                 <View style={styles.contentsLayout}>
+
+                    {/* Paired Device */}
+                    <View style={styles.contentTitle}>
+                        <Text style={styles.title}>
+                            {"Paired Devices"}
+                        </Text>
+                    </View>
+
+                    <View style={styles.contentDeviceListLayout}>
+                        <ScrollView >
+                            <PairedListView devices={this.state.pairedDevices} updatePairedDevice={this.updatePairedDevice} resetDevices={this.resetPairedDevice} />
+                        </ScrollView>
+                    </View>
+
+                    {/* Pairable Device */}
                     <View style={styles.contentTitle}>
                         <Text style={styles.title}>
                             {"Pairable Devices"}
@@ -507,6 +599,7 @@ export default class App extends Component {
                             <ListView devices={this.state.pairableDevices} updateFoundDevice={this.updateFoundDevice} resetDevices={this.resetPairableDevice} />
                         </ScrollView>
                     </View>
+
 
                     <View style={styles.contentConnectedDeviceLayout}>
                         <Text style={styles.bigTitle}>

@@ -21,11 +21,8 @@ import com.anoto.live.penaccess.client.SetResetListener;
 import com.anoto.live.penaccess.client.UpdatePenFirmwareListener;
 import com.anoto.live.penaccess.responseobjects.ArchiveInfo;
 import com.anoto.live.penaccess.responseobjects.Info;
-import com.anoto.live.penaccess.responseobjects.MilestoneInfo;
 import com.anoto.live.penaccess.responseobjects.Notification;
 import com.anoto.live.penaccess.responseobjects.PairedDevice;
-import com.anoto.live.penaccess.responseobjects.SessionInfo;
-import com.anoto.live.penaccess.responseobjects.SessionStatus;
 import com.anoto.live.penaccess.responseobjects.Settings;
 import com.anoto.live.penaccess.responseobjects.Status;
 import com.facebook.react.bridge.Callback;
@@ -125,7 +122,7 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
     private static final int BLUETOOTH_STATUS_WAIT_FOR_CONNECT = 11;
     private static final int BLUETOOTH_STATUS_CONNECTED        = 12;
     private static final int BLUETOOTH_STATUS_DISCONNECTED     = 13;
-
+    private static final int BLUETOOTH_STATUS_PAIRED_DEVICE    = 14;
 
     private PenManager mPenManager;
     private AfdHandler mAFDHandler;
@@ -179,14 +176,27 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         sendEventToClient(reactContext, EVENT_LOG, params);
 
         mPenManager.start(reactContext, this, mSetting);
-
     }
-
-
+    
     @ReactMethod
     public void stopSDK() {
         Log.d(TAG,"LiveSDK > stopSDK > ");
         mPenManager.stop();
+    }
+
+    @ReactMethod
+    public void scanForDevice() {
+        Log.d(TAG,"LiveSDK > scanForDevice > ");
+
+        WritableMap params = Arguments.createMap();
+        params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > scanForDevice >");
+        sendEventToClient(reactContext, EVENT_LOG, params);
+
+        if (mPenManager != null) {
+            mPenManager.stop();
+            mSetting.setScanForNewPen(true);
+            mPenManager.start(reactContext, this, mSetting);
+        }
     }
 
     //----------------------------------------------------------------------------------------------
@@ -200,6 +210,8 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         WritableMap params = Arguments.createMap();
         params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Start to scan");
         sendEventToClient(reactContext, EVENT_LOG, params);
+
+        mBluetoothFoundDeviceList.clear();
 
         if (mPenManager != null) {
             mPenManager.stop();
@@ -619,10 +631,16 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
 
     @Override
     public void handlePairedDevicesWithHost(BluetoothPairedDeviceList bluetoothPairedDeviceList) {
-        Log.d(TAG,"LiveSDK > handlePairedDevicesWithHost");
+        Log.d(TAG,"LiveSDK > handlePairedDevicesWithHost > Device List : " + bluetoothPairedDeviceList.getDevices().size());
         int i = 0;
         for (BluetoothDevice device: bluetoothPairedDeviceList.getDevices()) {
-            Log.d(TAG,"LiveSDK > handleDeviceFound > Device [" + i +"] Name ["+ device.getName()+"] Address ["+ device.getAddress()+"]");
+            Log.d(TAG,"LiveSDK > handlePairedDevicesWithHost > Device [" + i++ +"] Name ["+ device.getName()+"] Address ["+ device.getAddress()+"]");
+            
+            WritableMap params = Arguments.createMap();
+            params.putString(EVENT_PARAM_KEY_DEVICE_NAME, device.getName());
+            params.putString(EVENT_PARAM_KEY_DEVICE_ADDRESS, device.getAddress());
+
+            sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH_PAIRED_DEVICE, params);
         }
     }
 
@@ -663,63 +681,55 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         params.putString(EVENT_PARAM_KEY_MESSAGE, "> Connected");
         sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH, params);
 
-        try {
-            Log.d(TAG, "LiveSDK > handleConnected > setStreamWithFeature");
+        Log.d(TAG, "LiveSDK > handleConnected > setStreamWithFeature");
 
-            WritableMap params2 = Arguments.createMap();
-            params2.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > setStreaming > on [" + true + "] hover ["+ false + "] time [" + false + "] store ["+false+"] noBuf [" + true +"]");
-            sendEventToClient(reactContext, EVENT_LOG, params2);
+        WritableMap params2 = Arguments.createMap();
+        params2.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > setStreaming > on [" + true + "] hover ["+ false + "] time [" + false + "] store ["+false+"] noBuf [" + true +"]");
+        sendEventToClient(reactContext, EVENT_LOG, params2);
 
-            mPenManager.setStreamWithFeature(true, false, false, false, true, new SetPenStreamingListener() {
-                @Override
-                public void setPenStreamingCompleted() {
-                    Log.d(TAG, "LiveSDK > handleConnected > setStreamWithFeature > setPenStreamingCompleted");
+        mPenManager.setStreamWithFeature(true, false, false, false, true, new SetPenStreamingListener() {
+            @Override
+            public void setPenStreamingCompleted() {
+                Log.d(TAG, "LiveSDK > handleConnected > setStreamWithFeature > setPenStreamingCompleted");
 
-                    WritableMap params = Arguments.createMap();
-                    params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Completed to set the streaming feature");
-                    sendEventToClient(reactContext, EVENT_LOG, params);
-                }
+                WritableMap params = Arguments.createMap();
+                params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Completed to set the streaming feature");
+                sendEventToClient(reactContext, EVENT_LOG, params);
+            }
 
-                @Override
-                public void setPenStreamingFailed(Exception aException) {
-                    Log.d(TAG, "LiveSDK > handleConnected > setStreamWithFeature > setPenStreamingFailed");
-                    WritableMap params = Arguments.createMap();
-                    params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Failed to set the streaming feature");
-                    sendEventToClient(reactContext, EVENT_LOG, params);
-                }
-            });
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            @Override
+            public void setPenStreamingFailed(Exception aException) {
+                Log.d(TAG, "LiveSDK > handleConnected > setStreamWithFeature > setPenStreamingFailed");
+                WritableMap params = Arguments.createMap();
+                params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Failed to set the streaming feature");
+                sendEventToClient(reactContext, EVENT_LOG, params);
+            }
+        });
 
-        try {
+        WritableMap params3 = Arguments.createMap();
+        params3.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > setPenTime");
+        sendEventToClient(reactContext, EVENT_LOG, params3);
 
-            WritableMap params3 = Arguments.createMap();
-            params3.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > setPenTime");
-            sendEventToClient(reactContext, EVENT_LOG, params3);
+        mPenManager.setPenTime(System.currentTimeMillis(), new SetPenTimeListener() {
+            @Override
+            public void setPenTimeCompleted() {
+                Log.d(TAG, "LiveSDK > handleConnected > setPenTime > setPenTimeCompleted");
 
-            mPenManager.setPenTime(System.currentTimeMillis(), new SetPenTimeListener() {
-                @Override
-                public void setPenTimeCompleted() {
-                    Log.d(TAG, "LiveSDK > handleConnected > setPenTime > setPenTimeCompleted");
+                WritableMap params = Arguments.createMap();
+                params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Completed to set the pen time");
+                sendEventToClient(reactContext, EVENT_LOG, params);
+            }
 
-                    WritableMap params = Arguments.createMap();
-                    params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Completed to set the pen time");
-                    sendEventToClient(reactContext, EVENT_LOG, params);
-                }
+            @Override
+            public void setPenTimeFailed(Exception e) {
+                Log.d(TAG, "LiveSDK > handleConnected > setPenTime > setPenTimeFailed");
 
-                @Override
-                public void setPenTimeFailed(Exception e) {
-                    Log.d(TAG, "LiveSDK > handleConnected > setPenTime > setPenTimeFailed");
+                WritableMap params = Arguments.createMap();
+                params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Failed to set the pen time");
+                sendEventToClient(reactContext, EVENT_LOG, params);
+            }
+        });
 
-                    WritableMap params = Arguments.createMap();
-                    params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Failed to set the pen time");
-                    sendEventToClient(reactContext, EVENT_LOG, params);
-                }
-            });
-        } catch (IOException ex) {
-
-        }
     }
 
     @Override
@@ -865,33 +875,4 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         Log.d(TAG,"LiveSDK > handleArchiveInfo");
 
     }
-
-    @Override
-    public void handleSessionStatus(SessionStatus sessionStatus) {
-
-        Log.d(TAG,"LiveSDK > handleSessionStatus");
-
-    }
-
-    @Override
-    public void handleSessions(ArrayList<SessionInfo> arrayList) {
-
-        Log.d(TAG,"LiveSDK > handleSessions");
-
-    }
-
-    @Override
-    public void handleSession(SessionInfo sessionInfo) {
-
-        Log.d(TAG,"LiveSDK > handleSession");
-
-    }
-
-    @Override
-    public void handleMilestones(ArrayList<MilestoneInfo> arrayList) {
-
-        Log.d(TAG,"LiveSDK > handleMilestones");
-
-    }
-
 }
