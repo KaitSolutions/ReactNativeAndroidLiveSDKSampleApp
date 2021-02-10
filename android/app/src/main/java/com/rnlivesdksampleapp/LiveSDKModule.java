@@ -172,34 +172,16 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         Log.d(TAG,"LiveSDK > startSDK >");
 
         WritableMap params = Arguments.createMap();
-        params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > LiveSDK is started...");
+        params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > LiveSDK is started");
         sendEventToClient(reactContext, EVENT_LOG, params);
-        if (mPenManager != null) {
-            mPenManager.stop();
-            mSetting.setScanForNewPen(false);
-            mPenManager.start(reactContext, this, mSetting);
-        }
+
+        mPenManager.start(reactContext, this, mSetting);
     }
     
     @ReactMethod
     public void stopSDK() {
         Log.d(TAG,"LiveSDK > stopSDK > ");
         mPenManager.stop();
-    }
-
-    @ReactMethod
-    public void getPairedDevices() {
-        Log.d(TAG,"LiveSDK > getPairedDevices > ");
-
-        WritableMap params = Arguments.createMap();
-        params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > getPairedDevice >");
-        sendEventToClient(reactContext, EVENT_LOG, params);
-
-        if (mPenManager != null) {
-            mPenManager.stop();
-            mSetting.setScanForNewPen(false);
-            mPenManager.start(reactContext, this, mSetting);
-        }
     }
 
     @ReactMethod

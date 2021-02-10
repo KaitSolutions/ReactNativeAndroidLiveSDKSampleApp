@@ -408,8 +408,7 @@ export default class App extends Component {
     doStartSDK = () => {
         this.resetPairedDevice();
         this.resetPairableDevice();
-        //NativeModules.PenManager.startSDK();
-        NativeModules.PenManager.getPairedDevices();
+        NativeModules.PenManager.startSDK();
     }
 
     //
