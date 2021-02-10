@@ -174,8 +174,11 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         WritableMap params = Arguments.createMap();
         params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > LiveSDK is started");
         sendEventToClient(reactContext, EVENT_LOG, params);
-
-        mPenManager.start(reactContext, this, mSetting);
+        if (mPenManager != null) {
+            mPenManager.stop();
+            mSetting.setScanForNewPen(true);
+            mPenManager.start(reactContext, this, mSetting);
+        }
     }
     
     @ReactMethod
