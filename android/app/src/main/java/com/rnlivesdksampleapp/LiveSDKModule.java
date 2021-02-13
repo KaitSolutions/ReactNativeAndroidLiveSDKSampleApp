@@ -19,12 +19,17 @@ import com.anoto.live.penaccess.client.SetPenStreamingListener;
 import com.anoto.live.penaccess.client.SetPenTimeListener;
 import com.anoto.live.penaccess.client.SetResetListener;
 import com.anoto.live.penaccess.client.UpdatePenFirmwareListener;
+import com.anoto.live.penaccess.responseobjects.AfdInfo;
 import com.anoto.live.penaccess.responseobjects.ArchiveInfo;
 import com.anoto.live.penaccess.responseobjects.Info;
+import com.anoto.live.penaccess.responseobjects.MilestoneInfo;
 import com.anoto.live.penaccess.responseobjects.Notification;
 import com.anoto.live.penaccess.responseobjects.PairedDevice;
+import com.anoto.live.penaccess.responseobjects.SessionInfo;
+import com.anoto.live.penaccess.responseobjects.SessionStatus;
 import com.anoto.live.penaccess.responseobjects.Settings;
 import com.anoto.live.penaccess.responseobjects.Status;
+import com.anoto.live.penaccess.responseobjects.Support;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
@@ -876,6 +881,40 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
     public void handleArchiveInfo(ArrayList<ArchiveInfo> arrayList) {
 
         Log.d(TAG,"LiveSDK > handleArchiveInfo");
+
+    }
+
+    //
+    // New SDK in v1.7.0.23
+    //
+
+    @Override
+    public void handleSupport(Support support) {
+
+    }
+
+    @Override
+    public void handleAfd(ArrayList<AfdInfo> arrayList) {
+
+    }
+
+    @Override
+    public void handleSessionStatus(SessionStatus sessionStatus) {
+
+    }
+
+    @Override
+    public void handleSessions(ArrayList<SessionInfo> arrayList) {
+
+    }
+
+    @Override
+    public void handleSession(SessionInfo sessionInfo) {
+
+    }
+
+    @Override
+    public void handleMilestones(ArrayList<MilestoneInfo> arrayList) {
 
     }
 }
