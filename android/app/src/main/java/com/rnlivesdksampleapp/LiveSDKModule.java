@@ -181,7 +181,8 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         sendEventToClient(reactContext, EVENT_LOG, params);
         if (mPenManager != null) {
             mPenManager.stop();
-            mSetting.setScanForNewPen(true);
+            Log.d(TAG,"LiveSDK > startSDK > setScanForNewPen > False");
+            mSetting.setScanForNewPen(false);
             mPenManager.start(reactContext, this, mSetting);
         }
     }
