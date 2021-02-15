@@ -131,14 +131,14 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
 
     private PenManager mPenManager;
     private AfdHandler mAFDHandler;
-    private ISettings mISetting;
+    private Settings mISetting;
     private com.rnlivesdksampleapp.Settings mSetting;
     private Gson gson = new Gson();
 
     private Callback mDiscoveredDevice;
     private String mTargetPairDevice;
     private List<BluetoothDevice> mBluetoothFoundDeviceList = new ArrayList<BluetoothDevice>();
-
+    private BluetoothDeviceList mBluetoothPairableDeviceList;
     private boolean mIsConnected = false;
 
     LiveSDKModule(ReactApplicationContext context) {
@@ -183,6 +183,7 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
             mPenManager.stop();
             Log.d(TAG,"LiveSDK > startSDK > setScanForNewPen > False");
             mSetting.setScanForNewPen(false);
+            mSetting.setAutoDiscover(false);
             mPenManager.start(reactContext, this, mSetting);
         }
     }
@@ -237,9 +238,26 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Trying to pair with device [" + address + "]");
         sendEventToClient(reactContext, EVENT_LOG, params);
 
-        mSetting.setScanForNewPen(false);
+        //mSetting.setScanForNewPen(false);
 
+        BluetoothDevice bluetoothDevice = null;
+
+        for (BluetoothDevice found701Device : mBluetoothFoundDeviceList) {
+            if(found701Device.getAddress().equals(address)) {
+                bluetoothDevice = found701Device;
+                break;
+            }
+        }
+
+        if (bluetoothDevice == null) {
+            return;
+        }
+
+        final BluetoothDevice finalBluetoothDevice = bluetoothDevice;
         mTargetPairDevice = address;
+
+        mBluetoothPairableDeviceList.chooseDevice(finalBluetoothDevice);
+        
     }
 
     @ReactMethod
@@ -576,6 +594,8 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
             params.putString(EVENT_PARAM_KEY_DEVICE_ADDRESS, device.getAddress());
             sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH_DEVICE_FOUND, params);
 
+            mBluetoothPairableDeviceList = bluetoothDeviceList;
+
             if(!mBluetoothFoundDeviceList.contains(device)) {
                 mBluetoothFoundDeviceList.add(device);
                 Log.d(TAG,"LiveSDK > handleDeviceFound > added device to mBluetoothFoundDeviceList ["+ mBluetoothFoundDeviceList.size()+"]");
@@ -598,20 +618,20 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
     public void handleChooseDevice(BluetoothDeviceList bluetoothDeviceList) {
 
         Log.d(TAG,"LiveSDK > handleChooseDevice");
-        WritableMap params = Arguments.createMap();
-        params.putInt(EVENT_PARAM_KEY_TYPE, BLUETOOTH_STATUS_READY_TO_PAIR);
-        params.putString(EVENT_PARAM_KEY_MESSAGE, "> Ready to pair. Choose device to pair");
-        sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH, params);
-
-        if(mTargetPairDevice != null) {
-            for(BluetoothDevice device : mBluetoothFoundDeviceList) {
-                if(device.getAddress().equals(mTargetPairDevice)) {
-                    Log.d(TAG,"LiveSDK > handleChooseDevice > chooseDevice >Name ["+ device.getName()+"] Address ["+ device.getAddress()+"]");
-                    bluetoothDeviceList.chooseDevice(device);
-                    break;
-                }
-            }
-        }
+//        WritableMap params = Arguments.createMap();
+//        params.putInt(EVENT_PARAM_KEY_TYPE, BLUETOOTH_STATUS_READY_TO_PAIR);
+//        params.putString(EVENT_PARAM_KEY_MESSAGE, "> Ready to pair. Choose device to pair");
+//        sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH, params);
+//
+//        if(mTargetPairDevice != null) {
+//            for(BluetoothDevice device : mBluetoothFoundDeviceList) {
+//                if(device.getAddress().equals(mTargetPairDevice)) {
+//                    Log.d(TAG,"LiveSDK > handleChooseDevice > chooseDevice >Name ["+ device.getName()+"] Address ["+ device.getAddress()+"]");
+//                    bluetoothDeviceList.chooseDevice(device);
+//                    break;
+//                }
+//            }
+//        }
     }
 
     @Override
