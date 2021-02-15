@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="ProjectModuleManager">
-    <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/RNLiveSDKSampleApp.iml" filepath="$PROJECT_DIR$/.idea/modules/RNLiveSDKSampleApp.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/RNLiveSDKSampleApp.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/RNLiveSDKSampleApp.app.iml" />
-    </modules>
-  </component>
-</project>
