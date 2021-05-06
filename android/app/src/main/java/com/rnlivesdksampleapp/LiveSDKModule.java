@@ -586,26 +586,29 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         params.putString(EVENT_PARAM_KEY_MESSAGE, "> Discovery Ended");
         sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH, params);
 
+        // Workaround: The user can't connect an already paired pen after scanning for new pens.
+        startSDK();
+
     }
 
     @Override
     public void handleChooseDevice(BluetoothDeviceList bluetoothDeviceList) {
 
         Log.d(TAG,"LiveSDK > handleChooseDevice");
-        WritableMap params = Arguments.createMap();
-        params.putInt(EVENT_PARAM_KEY_TYPE, BLUETOOTH_STATUS_READY_TO_PAIR);
-        params.putString(EVENT_PARAM_KEY_MESSAGE, "> Ready to pair. Choose device to pair");
-        sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH, params);
+        // WritableMap params = Arguments.createMap();
+        // params.putInt(EVENT_PARAM_KEY_TYPE, BLUETOOTH_STATUS_READY_TO_PAIR);
+        // params.putString(EVENT_PARAM_KEY_MESSAGE, "> Ready to pair. Choose device to pair");
+        // sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH, params);
 
-        if(mTargetPairDevice != null) {
-            for(BluetoothDevice device : mBluetoothFoundDeviceList) {
-                if(device.getAddress().equals(mTargetPairDevice)) {
-                    Log.d(TAG,"LiveSDK > handleChooseDevice > chooseDevice >Name ["+ device.getName()+"] Address ["+ device.getAddress()+"]");
-                    bluetoothDeviceList.chooseDevice(device);
-                    break;
-                }
-            }
-        }
+        // if(mTargetPairDevice != null) {
+        //     for(BluetoothDevice device : mBluetoothFoundDeviceList) {
+        //         if(device.getAddress().equals(mTargetPairDevice)) {
+        //             Log.d(TAG,"LiveSDK > handleChooseDevice > chooseDevice >Name ["+ device.getName()+"] Address ["+ device.getAddress()+"]");
+        //             bluetoothDeviceList.chooseDevice(device);
+        //             break;
+        //         }
+        //     }
+        // }
     }
 
     @Override
