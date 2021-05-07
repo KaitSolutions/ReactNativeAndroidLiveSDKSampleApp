@@ -131,6 +131,7 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
 
     private PenManager mPenManager;
     private AfdHandler mAFDHandler;
+    //private ISettings mISetting;
     private Settings mISetting;
     private com.rnlivesdksampleapp.Settings mSetting;
     private Gson gson = new Gson();
@@ -138,6 +139,7 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
     private Callback mDiscoveredDevice;
     private String mTargetPairDevice;
     private List<BluetoothDevice> mBluetoothFoundDeviceList = new ArrayList<BluetoothDevice>();
+
     private BluetoothDeviceList mBluetoothPairableDeviceList;
     private boolean mIsConnected = false;
 
@@ -181,6 +183,7 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         sendEventToClient(reactContext, EVENT_LOG, params);
         if (mPenManager != null) {
             mPenManager.stop();
+            //mSetting.setScanForNewPen(true);
             Log.d(TAG,"LiveSDK > startSDK > setScanForNewPen > False");
             mSetting.setScanForNewPen(false);
             mSetting.setAutoDiscover(false);
@@ -239,6 +242,7 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         sendEventToClient(reactContext, EVENT_LOG, params);
 
         //mSetting.setScanForNewPen(false);
+        //mTargetPairDevice = address;
 
         BluetoothDevice bluetoothDevice = null;
 
@@ -257,7 +261,7 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         mTargetPairDevice = address;
 
         mBluetoothPairableDeviceList.chooseDevice(finalBluetoothDevice);
-        
+
     }
 
     @ReactMethod
@@ -606,11 +610,19 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
     @Override
     public void handleDiscoveryEnded(boolean b) {
 
-        Log.d(TAG,"LiveSDK > handleDiscoveryEnded");
+        Log.d(TAG,"LiveSDK > handleDiscoveryEnded > found : " + b);
         WritableMap params = Arguments.createMap();
         params.putInt(EVENT_PARAM_KEY_TYPE, BLUETOOTH_STATUS_DISCOVER_DONE);
-        params.putString(EVENT_PARAM_KEY_MESSAGE, "> Discovery Ended");
+        if(b) {
+            params.putString(EVENT_PARAM_KEY_MESSAGE, "> Discovery Ended. Please select a device to pair");
+        } else {
+            params.putString(EVENT_PARAM_KEY_MESSAGE, "> Discovery Ended. No found device");
+        }
+
         sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH, params);
+
+        // Workaround: The user can't connect an already paired pen after scanning for new pens.
+        // startSDK();
 
     }
 
@@ -618,20 +630,20 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
     public void handleChooseDevice(BluetoothDeviceList bluetoothDeviceList) {
 
         Log.d(TAG,"LiveSDK > handleChooseDevice");
-//        WritableMap params = Arguments.createMap();
-//        params.putInt(EVENT_PARAM_KEY_TYPE, BLUETOOTH_STATUS_READY_TO_PAIR);
-//        params.putString(EVENT_PARAM_KEY_MESSAGE, "> Ready to pair. Choose device to pair");
-//        sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH, params);
-//
-//        if(mTargetPairDevice != null) {
-//            for(BluetoothDevice device : mBluetoothFoundDeviceList) {
-//                if(device.getAddress().equals(mTargetPairDevice)) {
-//                    Log.d(TAG,"LiveSDK > handleChooseDevice > chooseDevice >Name ["+ device.getName()+"] Address ["+ device.getAddress()+"]");
-//                    bluetoothDeviceList.chooseDevice(device);
-//                    break;
-//                }
-//            }
-//        }
+        // WritableMap params = Arguments.createMap();
+        // params.putInt(EVENT_PARAM_KEY_TYPE, BLUETOOTH_STATUS_READY_TO_PAIR);
+        // params.putString(EVENT_PARAM_KEY_MESSAGE, "> Ready to pair. Choose device to pair");
+        // sendEventToClient(reactContext, EVENT_STATUS_BLUETOOTH, params);
+
+        // if(mTargetPairDevice != null) {
+        //     for(BluetoothDevice device : mBluetoothFoundDeviceList) {
+        //         if(device.getAddress().equals(mTargetPairDevice)) {
+        //             Log.d(TAG,"LiveSDK > handleChooseDevice > chooseDevice >Name ["+ device.getName()+"] Address ["+ device.getAddress()+"]");
+        //             bluetoothDeviceList.chooseDevice(device);
+        //             break;
+        //         }
+        //     }
+        // }
     }
 
     @Override
@@ -716,49 +728,57 @@ public class LiveSDKModule extends ReactContextBaseJavaModule implements IPenAcc
         params2.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > setStreaming > on [" + true + "] hover ["+ false + "] time [" + false + "] store ["+false+"] noBuf [" + true +"]");
         sendEventToClient(reactContext, EVENT_LOG, params2);
 
-        mPenManager.setStreamWithFeature(true, false, false, false, true, new SetPenStreamingListener() {
-            @Override
-            public void setPenStreamingCompleted() {
-                Log.d(TAG, "LiveSDK > handleConnected > setStreamWithFeature > setPenStreamingCompleted");
-
-                WritableMap params = Arguments.createMap();
-                params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Completed to set the streaming feature");
-                sendEventToClient(reactContext, EVENT_LOG, params);
-            }
-
-            @Override
-            public void setPenStreamingFailed(Exception aException) {
-                Log.d(TAG, "LiveSDK > handleConnected > setStreamWithFeature > setPenStreamingFailed");
-                WritableMap params = Arguments.createMap();
-                params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Failed to set the streaming feature");
-                sendEventToClient(reactContext, EVENT_LOG, params);
-            }
-        });
+        try {
+            mPenManager.setStreamWithFeature(true, false, false, false, true, new SetPenStreamingListener() {
+                @Override
+                public void setPenStreamingCompleted() {
+                    Log.d(TAG, "LiveSDK > handleConnected > setStreamWithFeature > setPenStreamingCompleted");
+    
+                    WritableMap params = Arguments.createMap();
+                    params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Completed to set the streaming feature");
+                    sendEventToClient(reactContext, EVENT_LOG, params);
+                }
+    
+                @Override
+                public void setPenStreamingFailed(Exception aException) {
+                    Log.d(TAG, "LiveSDK > handleConnected > setStreamWithFeature > setPenStreamingFailed");
+                    WritableMap params = Arguments.createMap();
+                    params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Failed to set the streaming feature");
+                    sendEventToClient(reactContext, EVENT_LOG, params);
+                }
+            });    
+        } catch (Exception e) {
+            //TODO: handle exception
+        }
+        
 
         WritableMap params3 = Arguments.createMap();
         params3.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > setPenTime");
         sendEventToClient(reactContext, EVENT_LOG, params3);
 
-        mPenManager.setPenTime(System.currentTimeMillis(), new SetPenTimeListener() {
-            @Override
-            public void setPenTimeCompleted() {
-                Log.d(TAG, "LiveSDK > handleConnected > setPenTime > setPenTimeCompleted");
+        try {
+            mPenManager.setPenTime(System.currentTimeMillis(), new SetPenTimeListener() {
+                @Override
+                public void setPenTimeCompleted() {
+                    Log.d(TAG, "LiveSDK > handleConnected > setPenTime > setPenTimeCompleted");
+    
+                    WritableMap params = Arguments.createMap();
+                    params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Completed to set the pen time");
+                    sendEventToClient(reactContext, EVENT_LOG, params);
+                }
+    
+                @Override
+                public void setPenTimeFailed(Exception e) {
+                    Log.d(TAG, "LiveSDK > handleConnected > setPenTime > setPenTimeFailed");
+    
+                    WritableMap params = Arguments.createMap();
+                    params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Failed to set the pen time");
+                    sendEventToClient(reactContext, EVENT_LOG, params);
+                }
+            });
+        } catch (Exception e) {
 
-                WritableMap params = Arguments.createMap();
-                params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Completed to set the pen time");
-                sendEventToClient(reactContext, EVENT_LOG, params);
-            }
-
-            @Override
-            public void setPenTimeFailed(Exception e) {
-                Log.d(TAG, "LiveSDK > handleConnected > setPenTime > setPenTimeFailed");
-
-                WritableMap params = Arguments.createMap();
-                params.putString(EVENT_PARAM_KEY_MESSAGE, "# Log > Failed to set the pen time");
-                sendEventToClient(reactContext, EVENT_LOG, params);
-            }
-        });
-
+        }
     }
 
     @Override
